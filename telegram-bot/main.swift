@@ -15,7 +15,6 @@ enum Feature: String, CaseIterable {
     case claimDailyReward = "5"
 }
 
-let dispatchGroup = DispatchGroup()
 
 func featureDescription(for feature: Feature) -> String {
     switch feature {
@@ -61,4 +60,4 @@ func handleDefaultFlow() {
 handleDefaultFlow()
 
 
-dispatchGroup.wait()
+

@@ -6,10 +6,16 @@
 //
 
 import Foundation
+import Dispatch
+
+private let semaphore = DispatchSemaphore(value: 0)
 
 public func setupCronJob() {
-    let timer = Timer.scheduledTimer(withTimeInterval: 12 * 60 * 60, repeats: true) { _ in
-        print("🔄 Starting farming session every 12 hours...")
+    let queue = DispatchQueue(label: "com.yourapp.cronJob", attributes: .concurrent)
+    let interval: TimeInterval = 12 * 60 * 60 // 12 hours in seconds
+    
+    func runJob() {
+        print("🔄 Starting farming session...")
         claimFarmReward { result in
             switch result {
             case .success(_):
@@ -17,44 +23,64 @@ public func setupCronJob() {
             case .failure(let error):
                 print("❌ Failed to claim farming reward.", error)
             }
+            
+            // Schedule the next run
+            queue.asyncAfter(deadline: .now() + interval) {
+                runJob()
+            }
         }
     }
-    // This will make it run immediately for the first time
-    timer.fire()
     
-    print("⏰ Timer set up to run every 12 hours.")
+    // Start the first job immediately
+    queue.async {
+        runJob()
+    }
     
-    // Keep the timer running
-    RunLoop.current.run()
+    print("⏰ Cron job set up to run every 12 hours.")
+    
+    // Keep the program running
+    semaphore.wait()
 }
 
 
 public func setupBalanceCheckJob() {
     let randomHour = Int.random(in: 1...8)
-    let timeInterval = Double(randomHour * 60 * 60)
+    let queue = DispatchQueue(label: "com.yourapp.cronJob", attributes: .concurrent)
+    let timeInterval: TimeInterval = Double(randomHour * 60 * 60)
     
-    let timer = Timer.scheduledTimer(withTimeInterval: timeInterval, repeats: true) { _ in
+    func runJob() {
         getBalance { result in
+            //            defer { semaphore.signal() }
+            
             switch result {
             case .success(let balance):
-                 let farmingBalance = balance.farming.balance
+                let farmingBalance = balance.farming.balance
                 print("🌾 Updated farming balance: \(farmingBalance) BLUM")
             case .failure(let error):
                 print("❌ Failed to retrieve balance.", error)
             }
+            
+            queue.asyncAfter(deadline: .now() + timeInterval) {
+                runJob()
+            }
         }
     }
     
-    timer.fire()
+    queue.async {
+        runJob()
+    }
     
     print("⏰ Balance check job set up to run every \(randomHour) hours.")
     
-    RunLoop.current.run()
+    semaphore.wait()
 }
 
 
 public func setupFarmRewardCron() {
-    let timer = Timer.scheduledTimer(withTimeInterval: 9 * 60 * 60, repeats: true) { _ in
+    let interval: TimeInterval = 12 * 60 * 60
+    let queue = DispatchQueue(label: "com.yourapp.cronJob", attributes: .concurrent)
+    
+    func runJob() {
         print("⏰ Running farm reward cron job...")
         claimFarmReward { result in
             switch result {
@@ -66,19 +92,26 @@ public func setupFarmRewardCron() {
             case .failure(let error):
                 print("❌ Failed to claim farming reward.", error)
             }
+            queue.asyncAfter(deadline: .now() + interval) {
+                runJob()
+            }
         }
     }
-    timer.fire()
+    queue.async {
+        runJob()
+    }
     
     print("🕒 Daily reward cron job scheduled to run every 9 hours.")
     
-    RunLoop.current.run()
+    semaphore.wait()
 }
 
 public func setupDailyRewardCron() {
-    let timer = Timer.scheduledTimer(withTimeInterval: 24 * 60 * 60, repeats: true) { _ in
+    let queue = DispatchQueue(label: "com.yourapp.cronJob", attributes: .concurrent)
+    let interval: TimeInterval = 24 * 60 * 60
+    
+    func runJob() {
         print("⏰ Running daily reward cron job...")
-        
         claimDailyReward { result in
             switch result {
             case .success(let reward):
@@ -89,11 +122,18 @@ public func setupDailyRewardCron() {
             case .failure(let error):
                 print("❌ Failed to claim farming reward.", error)
             }
+            
+            queue.asyncAfter(deadline: .now() + interval) {
+                runJob()
+            }
         }
     }
-    timer.fire()
+    
+    queue.async {
+        runJob()
+    }
     
     print("🕒 Daily reward cron job scheduled to run every 24 hours.")
     
-    RunLoop.current.run()
+    semaphore.wait()
 }

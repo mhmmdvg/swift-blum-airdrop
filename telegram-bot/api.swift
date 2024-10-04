@@ -55,7 +55,6 @@ public func getToken(completion: @escaping (Result<String, Error>) -> Void) {
             completion(.failure(error))
         }
     }.resume()
-    
 }
 
 
@@ -253,8 +252,6 @@ public func claimTaskReward(id: String, completion: @escaping (Result<Task, Erro
             }
             
             do {
-//                let result = try JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed)
-//                print("Claim Task Reward \(result)")
                 let result = try JSONDecoder().decode(Task.self, from: data)
                 completion(.success(result))
             } catch {
